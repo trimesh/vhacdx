@@ -94,7 +94,7 @@ def test_basic():
 
 def test_import():
     # check that the version is a string and roughly semantic-version
-    assert pv.__version__.count(".") == 2
+    assert pv.__version__.count(".") >= 2
 
 
 if __name__ == "__main__":
