@@ -111,7 +111,6 @@ compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
         ptr_res_vertices[3 * j + 2] = pos.mZ;
       }
 
-      const uint32_t num_v = 3;
       for (uint32_t j = 0; j < ch.m_triangles.size(); j++) {
         uint32_t i1 = ch.m_triangles[j].mI0;
         uint32_t i2 = ch.m_triangles[j].mI1;
@@ -131,6 +130,9 @@ compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
       res.emplace_back(std::move(res_vertices), std::move(res_faces));
     }
   }
+
+  iface->Release();
+  delete[] triangles;
   return res;
 }
 
