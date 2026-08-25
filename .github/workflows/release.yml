@@ -40,13 +40,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - if: matrix.os == 'windows-11-arm'
-      shell: pwsh
-      run: |
-        "CIBW_ARCHS=ARM64" >> $env:GITHUB_ENV
-        "CIBW_BUILD=cp311-* cp312-* cp313-* cp314-*" >> $env:GITHUB_ENV
-
-    - uses: pypa/cibuildwheel@v3.3.0
+    - uses: pypa/cibuildwheel@v4.2.0
 
     - name: Upload wheels
       uses: actions/upload-artifact@v4
