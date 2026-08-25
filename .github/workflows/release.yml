@@ -4,7 +4,6 @@ on:
   push:
     branches:
      - main
-  pull_request:
   
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -59,7 +58,6 @@ jobs:
   upload_all:
     name: Release To PyPi
     needs: [build_wheels, build_sdist]
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       id-token: write
