@@ -33,7 +33,7 @@ test-command = "pytest {project}/tests"
 
 # skip platforms that don't have numpy wheels
 test-skip = "*universal2:arm64 pp* *i686 *musllinux*"
-skip = "*-win32 pp*"
+skip = "*-win32 pp* cp315*-* cp39-win_arm64 cp310-win_arm64 cp314t-win_arm64"
 
 [tool.ruff]
 target-version = "py37"
