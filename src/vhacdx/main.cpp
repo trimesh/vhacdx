@@ -16,7 +16,8 @@ namespace py = pybind11;
 // vertices is a numpy array of shape (n, 3)
 // indices is a numpy array of shape (m,)
 std::vector<std::pair<py::array_t<double>, py::array_t<uint32_t>>>
-compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
+compute_vhacd(py::array_t<double, py::array::c_style | py::array::forcecast> points,
+              py::array_t<uint32_t, py::array::c_style | py::array::forcecast> faces,
               uint32_t maxConvexHulls, uint32_t resolution,
               double minimumVolumePercentErrorAllowed,
               uint32_t maxRecursionDepth, bool shrinkWrap, std::string fillMode,
@@ -27,21 +28,30 @@ compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
   auto buf_points = points.request();
   auto buf_faces = faces.request();
 
+  if (buf_points.ndim != 2 || buf_points.shape[1] != 3) {
+    throw py::value_error("points must be a (n, 3) array");
+  }
+
   /*  variables */
   double *ptr_points = (double *)buf_points.ptr;
   uint32_t *ptr_faces = (uint32_t *)buf_faces.ptr;
   size_t num_points = buf_points.shape[0];
-  size_t num_faces = buf_faces.shape[0] / 4;
+  size_t num_faces = buf_faces.size / 4;
   size_t num_triangle_indices = num_faces * 3;
 
   // Prepare our input arrays for VHACD
-  uint32_t *triangles = new uint32_t[num_triangle_indices];
-  for (uint32_t i = 0; i < num_faces; i++) {
+  std::vector<uint32_t> triangles(num_triangle_indices);
+  for (size_t i = 0; i < num_faces; i++) {
     // We skip the first index of the face array, which is the number of
     // vertices in the face
-    triangles[3 * i] = ptr_faces[4 * i + 1];
-    triangles[3 * i + 1] = ptr_faces[4 * i + 2];
-    triangles[3 * i + 2] = ptr_faces[4 * i + 3];
+    for (size_t j = 0; j < 3; j++) {
+      uint32_t index = ptr_faces[4 * i + j + 1];
+      // VHACD does no bounds checking so a bad index would read out of bounds
+      if (index >= num_points) {
+        throw py::value_error("faces reference a vertex index out of range");
+      }
+      triangles[3 * i + j] = index;
+    }
   }
 
   // Create the VHACD parameters
@@ -74,7 +84,7 @@ compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
 #endif
 
   /// The main computation ///////////////////////////////////////////////
-  iface->Compute(ptr_points, num_points, triangles, num_faces, p);
+  iface->Compute(ptr_points, num_points, triangles.data(), num_faces, p);
 
   while (!iface->IsReady()) {
     std::this_thread::sleep_for(std::chrono::nanoseconds(10000)); // s
@@ -132,7 +142,6 @@ compute_vhacd(py::array_t<double> points, py::array_t<uint32_t> faces,
   }
 
   iface->Release();
-  delete[] triangles;
   return res;
 }
 

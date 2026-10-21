@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 import vhacdx as pv
 
@@ -98,6 +99,34 @@ def test_import():
     assert pv.__version__.count(".") >= 2
 
 
+def test_invalid():
+    # malformed input should raise rather than read out of bounds
+    points = np.random.random((8, 3))
+    faces = np.array([3, 0, 1, 2, 3, 3, 5, 7], dtype=np.int64)
+
+    # face index past the end of points
+    bad = faces.copy()
+    bad[-1] = 8
+    with pytest.raises(ValueError):
+        pv.compute_vhacd(points, bad)
+
+    # negative index wraps to a huge uint32
+    bad[-1] = -1
+    with pytest.raises(ValueError):
+        pv.compute_vhacd(points, bad)
+
+    # points that aren't (n, 3)
+    with pytest.raises(ValueError):
+        pv.compute_vhacd(points.ravel(), faces)
+    with pytest.raises(ValueError):
+        pv.compute_vhacd(np.random.random((8, 2)), faces)
+
+    # non-contiguous points should be copied and work
+    strided = np.random.random((8, 6))[:, ::2]
+    assert len(pv.compute_vhacd(strided, faces)) > 0
+
+
 if __name__ == "__main__":
     test_basic()
     test_import()
+    test_invalid()
