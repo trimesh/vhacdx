@@ -4,18 +4,24 @@ on:
   push:
     branches:
      - main
-  
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
+permissions: {}
 
 jobs:
   build_sdist:
     name: Build SDist
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v5
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        persist-credentials: false
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: "3.12"
     - name: Install Build
@@ -24,7 +30,7 @@ jobs:
       run: python -m build . --sdist
     - name: Check metadata
       run: twine check dist/*
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         path: dist/*.tar.gz
         name: wheels-sdist
@@ -32,20 +38,22 @@ jobs:
   build_wheels:
     name: Wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, ubuntu-24.04-arm, windows-latest, windows-11-arm, macos-latest, macos-15-intel]
 
     steps:
-    - uses: actions/checkout@v4
-
-    - uses: pypa/cibuildwheel@v4.2.0
-
-    - name: Upload wheels
-      uses: actions/upload-artifact@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
-        name: wheels-${{ matrix.os }}      
+        persist-credentials: false
+    - uses: pypa/cibuildwheel@8c2dcd2e96041a619f5ff03c9638d7941e2553a4 # v4.3.3
+    - name: Upload wheels
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: wheels-${{ matrix.os }}
         path: wheelhouse/*.whl
 
 
@@ -53,16 +61,16 @@ jobs:
     name: Release To PyPi
     needs: [build_wheels, build_sdist]
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/vhacdx
     permissions:
-      id-token: write
+      id-token: write  # PyPI trusted publishing
     steps:
-    - uses: actions/setup-python@v4
-      with:
-        python-version: "3.12"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
       with:
         pattern: wheels-*
         merge-multiple: true
         path: dist
 
-    - uses: pypa/gh-action-pypi-publish@v1.13.0
+    - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
